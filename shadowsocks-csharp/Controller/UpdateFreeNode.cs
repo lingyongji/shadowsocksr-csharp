@@ -17,16 +17,20 @@ namespace Shadowsocks.Controller
 
         public event EventHandler NewFreeNodeFound;
         public string FreeNodeResult;
+        public ServerSubscribe subscribeTask;
 
         public const string Name = "ShadowsocksR";
 
-        public void CheckUpdate(Configuration config, string URL, bool use_proxy)
+        public void CheckUpdate(Configuration config, ServerSubscribe subscribeTask, bool use_proxy)
         {
             FreeNodeResult = null;
             try
             {
                 WebClient http = new WebClient();
-                http.Headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 5.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.3319.102 Safari/537.36");
+                http.Headers.Add("User-Agent",
+                    String.IsNullOrEmpty(config.proxyUserAgent) ?
+                    "Mozilla/5.0 (Windows NT 5.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.3319.102 Safari/537.36"
+                    : config.proxyUserAgent);
                 http.QueryString["rnd"] = Util.Utils.RandUInt32().ToString();
                 if (use_proxy)
                 {
@@ -42,6 +46,8 @@ namespace Shadowsocks.Controller
                     http.Proxy = null;
                 }
                 //UseProxy = !UseProxy;
+                this.subscribeTask = subscribeTask;
+                string URL = subscribeTask.URL;
                 http.DownloadStringCompleted += http_DownloadStringCompleted;
                 http.DownloadStringAsync(new Uri(URL != null ? URL : UpdateURL));
             }
@@ -121,7 +127,7 @@ namespace Shadowsocks.Controller
             else
             {
                 _URL = _serverSubscribes[0].URL;
-                _updater.CheckUpdate(_config, _URL, _use_proxy);
+                _updater.CheckUpdate(_config, _serverSubscribes[0], _use_proxy);
                 _serverSubscribes.RemoveAt(0);
                 return true;
             }
